@@ -3,9 +3,14 @@ import { HashingService } from 'src/shared/services/hashing.service'
 import { PrismaService } from 'src/shared/services/prisma.service'
 import { TokenService } from 'src/shared/services/token.service'
 import { RolesService } from './roles.service'
-import { isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helper'
+import { generateOTP, isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helper'
 import { AuthRepository } from './auth.repo'
 import { RegisterBodyType, SendOTPBodyType } from './auth.model'
+import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
+import { addMilliseconds } from 'date-fns'
+import envConfig from 'src/shared/config'
+import ms from 'ms'
+import { TypeOfVerificationCode } from 'src/shared/constants/auth.constant'
 
 @Injectable()
 export class AuthService {
@@ -13,10 +18,35 @@ export class AuthService {
     private readonly hashingService: HashingService,
     private readonly rolesService: RolesService,
     private readonly authRepository: AuthRepository,
+    private readonly sharedUserRepository: SharedUserRepository,
   ) {}
 
   async register(body: RegisterBodyType) {
     try {
+      const vevificationCode = await this.authRepository.findUniqueVerificationCode({
+        email: body.email,
+        code: body.code,
+        type: TypeOfVerificationCode.REGISTER,
+      })
+
+      if (!vevificationCode) {
+        throw new UnprocessableEntityException([
+          {
+            message: 'Invalid OTP code',
+            path: 'code',
+          },
+        ])
+      }
+
+      if (vevificationCode.expiresAt < new Date()) {
+        throw new UnprocessableEntityException([
+          {
+            message: 'Expired OTP code',
+            path: 'code',
+          },
+        ])
+      }
+
       const clientRoleId = await this.rolesService.getClientRoleId()
       const hashedPassword = await this.hashingService.hash(body.password)
       const user = await this.authRepository.createUser({
@@ -35,8 +65,38 @@ export class AuthService {
     }
   }
 
-  sendOtp(body: SendOTPBodyType) {
-    return body
+  async sendOTP(body: SendOTPBodyType) {
+    // 1. Check if email exists
+    const user = await this.sharedUserRepository.findUnique({
+      email: body.email,
+    })
+
+    if (user) {
+      throw new UnprocessableEntityException([
+        {
+          message: 'Email exists',
+          path: 'email',
+        },
+      ])
+    }
+
+    // 2. Tạo mã OTP
+    const expiresInMs = ms(envConfig.OTP_EXPIRES_IN as ms.StringValue)
+    if (typeof expiresInMs !== 'number') {
+      throw new Error('Invalid OTP_EXPIRES_IN value')
+    }
+
+    const code = generateOTP()
+
+    const verificationCode = this.authRepository.createVerificationCode({
+      email: body.email,
+      code,
+      type: body.type,
+      expiresAt: addMilliseconds(new Date(), expiresInMs),
+    })
+
+    // 3. Send OTP code to email
+    return verificationCode
   }
 
   // async login(body: any) {

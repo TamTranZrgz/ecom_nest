@@ -125,6 +125,7 @@ model VerificationCode {
 
   expiresAt DateTime
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
 
   @@index([email, code, type])
   @@index([expiresAt])

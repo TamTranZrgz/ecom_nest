@@ -2,6 +2,7 @@ import z from 'zod'
 import fs from 'fs'
 import path from 'path'
 import { config } from 'dotenv'
+import ms from 'ms'
 
 config({
   path: path.resolve('.env'),
