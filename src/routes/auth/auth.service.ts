@@ -228,23 +228,26 @@ export class AuthService {
     }
   }
 
-  // async logout(refreshToken: string) {
-  //   try {
-  //     // 1. Check refreshToken validity
-  //     await this.tokenService.verifyRefreshToken(refreshToken)
-  //     // 2. Delete refreshToken in database
-  //     await this.prismaService.refreshToken.delete({
-  //       where: {
-  //         token: refreshToken,
-  //       },
-  //     })
-  //     return { message: 'Logout successfully' }
-  //   } catch (error) {
-  //     // If refresh token has been evoked, inform user that their refresh token has been revoked
-  //     if (isNotFoundPrismaError(error)) {
-  //       throw new UnauthorizedException('Refresh token has been revoked')
-  //     }
-  //     throw new UnauthorizedException()
-  //   }
-  // }
+  async logout(refreshToken: string) {
+    try {
+      // 1. Check refreshToken validity
+      await this.tokenService.verifyRefreshToken(refreshToken)
+
+      // 2. Delete refreshToken in database, catch error if refreshToken not found
+      const deletedRefreshToken = await this.authRepository.deleteRefreshToken({
+        token: refreshToken,
+      })
+
+      // 3. Update device status as inactive, catch error if device not found
+      await this.authRepository.updateDevice(deletedRefreshToken.deviceId, { isActive: false })
+
+      return { message: 'Logout successfully' }
+    } catch (error) {
+      // If refresh token has been evoked, inform user that their refresh token has been revoked
+      if (isNotFoundPrismaError(error)) {
+        throw new UnauthorizedException('Refresh token has been revoked')
+      }
+      throw new UnauthorizedException()
+    }
+  }
 }

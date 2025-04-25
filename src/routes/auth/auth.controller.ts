@@ -4,12 +4,14 @@ import { AuthService } from './auth.service'
 import {
   LoginBodyDTO,
   LoginResDTO,
+  LogoutBodyDTO,
   RefreshTokenBodyDTO,
   RegisterBodyDTO,
   RegisterResDTO,
   SendOTPBodyDTO,
 } from './auth.dto'
 import { UserAgent } from 'src/shared/decorator/user-agen.decorator'
+import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
 @Controller('auth')
 export class AuthController {
@@ -46,8 +48,9 @@ export class AuthController {
     })
   }
 
-  // @Post('logout')
-  // async logout(@Body() body: any) {
-  //   return this.authService.logout(body.refreshToken)
-  // }
+  @Post('logout')
+  @ZodSerializerDto(MessageResDTO)
+  logout(@Body() body: LogoutBodyDTO) {
+    return this.authService.logout(body.refreshToken)
+  }
 }
