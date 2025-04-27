@@ -49,6 +49,7 @@ export class AuthRepository {
       update: {
         code: payload.code,
         expiresAt: payload.expiresAt,
+        type: payload.type,
       },
     })
   }
@@ -113,9 +114,39 @@ export class AuthRepository {
     })
   }
 
-  deleteRefreshToken(uniqueObject: { token: string }): Promise<RefreshTokenType> {
+  /*************  ✨ Windsurf Command ⭐  *************/
+  /**
+   * Delete a refresh token from the database
+   * @param uniqueObject - must contain a `token` key
+   * @returns the deleted refresh token
+   */
+  /*******  7e3cc813-6925-4bd8-b0e7-9a754081e535  *******/ deleteRefreshToken(uniqueObject: {
+    token: string
+  }): Promise<RefreshTokenType> {
     return this.prismaService.refreshToken.delete({
       where: uniqueObject,
+    })
+  }
+
+  updateUser(where: { id: number } | { email: string }, data: Partial<Omit<UserType, 'id'>>): Promise<UserType> {
+    return this.prismaService.user.update({
+      where,
+      data,
+    })
+  }
+
+  deleteVerificationCode(
+    uniqueValue:
+      | { email: string }
+      | { id: number }
+      | {
+          email: string
+          code: string
+          type: TypeOfVerificationCodeType
+        },
+  ): Promise<VerificationCodeType | null> {
+    return this.prismaService.verificationCode.delete({
+      where: uniqueValue,
     })
   }
 }
