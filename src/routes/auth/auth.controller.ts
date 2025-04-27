@@ -3,6 +3,7 @@ import { ZodSerializerDto } from 'nestjs-zod'
 import { Response } from 'express'
 import { AuthService } from './auth.service'
 import {
+  DisableTwoFactorBodyDTO,
   ForgotPasswordBodyDTO,
   GetAuthorizationUrlResDTO,
   LoginBodyDTO,
@@ -12,6 +13,7 @@ import {
   RegisterBodyDTO,
   RegisterResDTO,
   SendOTPBodyDTO,
+  TwoFactorSetupResDTO,
   VerificationCodeDTO,
 } from './auth.dto'
 import { UserAgent } from 'src/shared/decorator/user-agen.decorator'
@@ -19,6 +21,8 @@ import { MessageResDTO } from 'src/shared/dtos/response.dto'
 import { IsPublic } from 'src/shared/decorator/auth.decorator'
 import { GoogleService } from './google.service'
 import envConfig from 'src/shared/config'
+import { EmptyBodyDTO } from 'src/shared/dtos/request.dto'
+import { ActiveUser } from 'src/shared/decorator/active-user.decorator'
 
 @Controller('auth')
 export class AuthController {
@@ -100,5 +104,21 @@ export class AuthController {
   @ZodSerializerDto(MessageResDTO)
   forgotPassword(@Body() body: ForgotPasswordBodyDTO) {
     return this.authService.forgotPassword(body)
+  }
+
+  // Use POST (with empty body): POST is more secured than GET, and POST have meaning of creation of sth
+  @Post('2fa/setup')
+  @ZodSerializerDto(TwoFactorSetupResDTO)
+  setupTwoFactorAuth(@Body() _: EmptyBodyDTO, @ActiveUser('userId') userId: number) {
+    return this.authService.setupTwoFactorAuth(userId)
+  }
+
+  @Post('2fa/disable')
+  @ZodSerializerDto(MessageResDTO)
+  disableTwoFactorAuth(@Body() body: DisableTwoFactorBodyDTO, @ActiveUser('userId') userId: number) {
+    return this.authService.disableTwoFactorAuth({
+      ...body,
+      userId,
+    })
   }
 }

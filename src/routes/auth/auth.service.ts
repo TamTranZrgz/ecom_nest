@@ -5,6 +5,7 @@ import { RolesService } from './roles.service'
 import { generateOTP, isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helper'
 import { AuthRepository } from './auth.repo'
 import {
+  DisableTwoFactorBodyType,
   ForgotPasswordBodyType,
   LoginBodyType,
   RefreshTokenBodyType,
@@ -23,11 +24,17 @@ import {
   FailedToSendOTPException,
   InvalidOTPException,
   InvalidPasswordException,
+  InvalidTOTPAndCodeException,
+  InvalidTOTPException,
   OTPExpiredException,
   RefreshTokenAlreadyUsedException,
+  TOTPAlreadyEnabledException,
+  TOTPNotEnabledException,
   UnauthorizedAccessException,
 } from './error.model'
 import { TypeOfVerificationCode, TypeOfVerificationCodeType } from 'src/shared/constants/auth.constant'
+import { TwoFactorService } from 'src/shared/services/2fa.service'
+import { DisableTwoFactorBodyDTO } from './auth.dto'
 
 @Injectable()
 export class AuthService {
@@ -38,6 +45,7 @@ export class AuthService {
     private readonly sharedUserRepository: SharedUserRepository,
     private readonly emailService: EmailService,
     private readonly tokenService: TokenService,
+    private readonly twoFactorService: TwoFactorService,
   ) {}
 
   async validateVerificationCode({
@@ -50,9 +58,11 @@ export class AuthService {
     type: TypeOfVerificationCodeType
   }) {
     const verificationCode = await this.authRepository.findUniqueVerificationCode({
-      email,
-      code,
-      type,
+      email_code_type: {
+        email,
+        code,
+        type,
+      },
     })
 
     if (!verificationCode) {
@@ -98,9 +108,11 @@ export class AuthService {
           roleId: clientRoleId,
         }),
         this.authRepository.deleteVerificationCode({
-          email: body.email,
-          code: body.code,
-          type: TypeOfVerificationCode.FORGOT_PASSWORD,
+          email_code_type: {
+            email: body.email,
+            code: body.code,
+            type: TypeOfVerificationCode.FORGOT_PASSWORD,
+          },
         }),
       ])
 
@@ -175,6 +187,7 @@ export class AuthService {
   }
 
   async login(body: LoginBodyType & { userAgent: string; ip: string }) {
+    // 1. Get user info, check availability, and password
     const user = await this.authRepository.findUniqueUserIncludeRole({
       email: body.email,
     })
@@ -200,12 +213,42 @@ export class AuthService {
       throw InvalidPasswordException
     }
 
+    // 2. If user has turned on 2FA, check 2fa TOTP code or OTP code (through email)
+    if (user.totpSecret) {
+      // If no OTP code and TOTP code, throw error
+      if (!body.totpCode && !body.code) {
+        throw InvalidTOTPAndCodeException
+      }
+
+      // CHeck if TOTP code is correct
+      if (body.totpCode) {
+        const isValid = this.twoFactorService.verifyTOTP({
+          email: user.email,
+          secret: user.totpSecret,
+          token: body.totpCode,
+        })
+
+        if (!isValid) {
+          throw InvalidTOTPException
+        }
+      } else if (body.code) {
+        // Check OTP Valididy
+        await this.validateVerificationCode({
+          email: user.email,
+          code: body.code,
+          type: TypeOfVerificationCode.LOGIN,
+        })
+      }
+    }
+
+    // 3. Create new device
     const device = await this.authRepository.createDevice({
       userId: user.id,
       userAgent: body.userAgent,
       ip: body.ip,
     })
 
+    // 4. Create new access and refresh token
     const tokens = await this.generateTokens({
       userId: user.id,
       deviceId: device.id,
@@ -335,14 +378,80 @@ export class AuthService {
         { password: hashedPassword },
       ),
       this.authRepository.deleteVerificationCode({
-        email: body.email,
-        code: body.code,
-        type: TypeOfVerificationCode.FORGOT_PASSWORD,
+        email_code_type: {
+          email: body.email,
+          code: body.code,
+          type: TypeOfVerificationCode.FORGOT_PASSWORD,
+        },
       }),
     ])
 
     return {
       message: 'Change password successfully',
+    }
+  }
+
+  async setupTwoFactorAuth(userId: number) {
+    // 1. Get user info to check user availability and check 2FA status
+    const user = await this.sharedUserRepository.findUnique({ id: userId })
+
+    if (!user) {
+      throw EmailNotFoundException
+    }
+
+    if (user.totpSecret) {
+      throw TOTPAlreadyEnabledException
+    }
+
+    // 2. Create secret and uri
+    const { secret, uri } = this.twoFactorService.generateTOTPSecret(user.email)
+
+    // 3. Update secret for user info in db
+    await this.authRepository.updateUser({ id: userId }, { totpSecret: secret })
+
+    // 4. Return secret and uri
+    return { secret, uri }
+  }
+
+  async disableTwoFactorAuth(data: DisableTwoFactorBodyType & { userId: number }) {
+    const { userId, totpCode, code } = data
+
+    // 1. Get user info to check user availability and check 2FA status
+    const user = await this.sharedUserRepository.findUnique({ id: userId })
+
+    if (!user) {
+      throw EmailNotFoundException
+    }
+
+    if (!user.totpSecret) {
+      throw TOTPNotEnabledException
+    }
+
+    // 2. Check OTP code validity
+    if (totpCode) {
+      const isValid = this.twoFactorService.verifyTOTP({
+        email: user.email,
+        secret: user.totpSecret,
+        token: totpCode,
+      })
+      if (!isValid) {
+        throw InvalidTOTPException
+      }
+    } else if (code) {
+      // 3. Check OTP email validity
+      await this.validateVerificationCode({
+        email: user.email,
+        code,
+        type: TypeOfVerificationCode.DISABLE_2FA,
+      })
+    }
+
+    // 4. Update secret to null
+    await this.authRepository.updateUser({ id: userId }, { totpSecret: null })
+
+    // 5. Return successfull message
+    return {
+      message: 'Tắt 2FA thành công',
     }
   }
 }
