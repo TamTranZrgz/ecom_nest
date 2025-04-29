@@ -31,10 +31,9 @@ import {
   TOTPAlreadyEnabledException,
   TOTPNotEnabledException,
   UnauthorizedAccessException,
-} from './error.model'
+} from './auth.error'
 import { TypeOfVerificationCode, TypeOfVerificationCodeType } from 'src/shared/constants/auth.constant'
 import { TwoFactorService } from 'src/shared/services/2fa.service'
-import { DisableTwoFactorBodyDTO } from './auth.dto'
 
 @Injectable()
 export class AuthService {
