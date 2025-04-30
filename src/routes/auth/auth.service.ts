@@ -164,6 +164,7 @@ export class AuthService {
       code,
       type: body.type,
       expiresAt: addMilliseconds(new Date(), expiresInMs),
+      updatedAt: new Date(),
     })
 
     // 3. Send OTP code to email

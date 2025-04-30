@@ -41,6 +41,7 @@ export const VerificationCodeSchema = z.object({
   ]),
   expiresAt: z.date(),
   createdAt: z.date(),
+  updatedAt: z.date(),
 })
 
 export const SendOTPBodySchema = VerificationCodeSchema.pick({ email: true, type: true }).strict()

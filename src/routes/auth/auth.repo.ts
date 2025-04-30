@@ -32,7 +32,7 @@ export class AuthRepository {
   }
 
   async createVerificationCode(
-    payload: Pick<VerificationCodeType, 'email' | 'type' | 'code' | 'expiresAt'>,
+    payload: Pick<VerificationCodeType, 'email' | 'type' | 'code' | 'expiresAt' | 'updatedAt'>,
   ): Promise<VerificationCodeType> {
     // check if email exists in db, delete previous code, and update with new code
     return this.prismaService.verificationCode.upsert({
