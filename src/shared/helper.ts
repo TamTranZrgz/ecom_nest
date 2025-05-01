@@ -1,13 +1,14 @@
 import { Prisma } from '@prisma/client'
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library'
 import { randomInt } from 'crypto'
 
 // Type Predicate - Prisma error
-export function isUniqueConstraintPrismaError(error: any): error is Prisma.PrismaClientKnownRequestError {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
+export function isUniqueConstraintPrismaError(error: any): error is PrismaClientKnownRequestError {
+  return error instanceof PrismaClientKnownRequestError && error.code === 'P2002'
 }
 
-export function isNotFoundPrismaError(error: any): error is Prisma.PrismaClientKnownRequestError {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025'
+export function isNotFoundPrismaError(error: any): error is PrismaClientKnownRequestError {
+  return error instanceof PrismaClientKnownRequestError && error.code === 'P2025'
 }
 
 export const generateOTP = () => {
