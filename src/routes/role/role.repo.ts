@@ -8,6 +8,7 @@ import {
   RoleWithPermissionsType,
   UpdateRoleBodyType,
 } from './role.model'
+import { permission } from 'process'
 
 @Injectable()
 export class RoleRepo {
@@ -48,7 +49,11 @@ export class RoleRepo {
         deletedAt: null,
       },
       include: {
-        permissions: true,
+        permissions: {
+          where: {
+            deletedAt: null,
+          },
+        },
       },
     })
   }
@@ -62,7 +67,33 @@ export class RoleRepo {
     })
   }
 
-  update({ id, updatedById, data }: { id: number; updatedById: number; data: UpdateRoleBodyType }): Promise<RoleType> {
+  async update({
+    id,
+    updatedById,
+    data,
+  }: {
+    id: number
+    updatedById: number
+    data: UpdateRoleBodyType
+  }): Promise<RoleType> {
+    // check if any permissionId which is soft deleted, will not permit to be on updated permission array
+    if (data.permissionIds.length > 0) {
+      const permissions = await this.prismaService.permission.findMany({
+        where: {
+          id: {
+            in: data.permissionIds,
+          },
+          deletedAt: null,
+        },
+      })
+
+      const deletedPermissions = permissions.filter((permission) => permission.deletedAt)
+      if (deletedPermissions.length > 0) {
+        const deletedIds = deletedPermissions.map((permission) => permission.id).join(', ')
+        throw new Error(`Permissions with ids have been deleted: ${deletedIds}`)
+      }
+    }
+
     return this.prismaService.role.update({
       where: {
         id,
@@ -78,7 +109,11 @@ export class RoleRepo {
         updatedById,
       },
       include: {
-        permissions: true,
+        permissions: {
+          where: {
+            deletedAt: null,
+          },
+        },
       },
     })
   }

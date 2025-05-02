@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { RoleRepo } from './role.repo'
 import { CreateRoleBodyType, GetRolesQueryType, UpdateRoleBodyType } from './role.model'
 import { NotFoundRecordException } from 'src/shared/error'
 import { isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helper'
-import { RoleAlreadyExistsException } from './role.error'
+import { ProhibitedActionOnBaseRoleException, RoleAlreadyExistsException } from './role.error'
+import { RoleName } from 'src/shared/constants/role.constant'
 
 @Injectable()
 export class RoleService {
@@ -34,23 +35,48 @@ export class RoleService {
     }
   }
 
+  /**
+   * CHeck if role is in 3 basic roles
+   */
+  private async verifyRole(roleId: number) {
+    const role = await this.roleRepo.findById(roleId)
+    if (!role) {
+      throw NotFoundRecordException
+    }
+    const baseRoles: string[] = [RoleName.Admin, RoleName.Customer, RoleName.Seller]
+
+    if (baseRoles.includes(role.name)) {
+      throw ProhibitedActionOnBaseRoleException
+    }
+  }
+
   async update({ data, id, updatedById }: { data: UpdateRoleBodyType; id: number; updatedById: number }) {
     try {
-      const role = await this.roleRepo.update({ data, id, updatedById })
-      return role
+      await this.verifyRole(id)
+
+      const updatedRole = await this.roleRepo.update({ data, id, updatedById })
+      return updatedRole
     } catch (error) {
       if (isNotFoundPrismaError(error)) {
         throw NotFoundRecordException
       }
+
       if (isUniqueConstraintPrismaError(error)) {
         throw RoleAlreadyExistsException
       }
+
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message)
+      }
+
       throw error
     }
   }
 
   async delete({ id, deletedById }: { id: number; deletedById: number }) {
     try {
+      await this.verifyRole(id)
+
       await this.roleRepo.delete({ id, deletedById })
       return {
         message: 'Delete role successfully',

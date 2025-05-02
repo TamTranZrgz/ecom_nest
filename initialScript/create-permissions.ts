@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from 'src/app.module'
-import { HTTPMethod } from 'src/shared/constants/role.constant'
+import { HTTPMethod, RoleName } from 'src/shared/constants/role.constant'
 import { PrismaService } from 'src/shared/services/prisma.service'
 
 const prisma = new PrismaService()
@@ -17,19 +17,22 @@ async function bootstrap() {
     },
   })
 
-  const availableRoutes: { path: string; method: keyof typeof HTTPMethod; name: string }[] = router.stack
-    .map((layer) => {
-      if (layer.route) {
-        const path = layer.route?.path
-        const method = String(layer.route?.stack[0].method).toUpperCase() as keyof typeof HTTPMethod
-        return {
-          path,
-          method,
-          name: method + ' ' + path,
+  const availableRoutes: { path: string; method: keyof typeof HTTPMethod; name: string; module: string }[] =
+    router.stack
+      .map((layer) => {
+        if (layer.route) {
+          const path = layer.route?.path
+          const method = String(layer.route?.stack[0].method).toUpperCase() as keyof typeof HTTPMethod
+          const moduleName = path.split('/')[1]
+          return {
+            path,
+            method,
+            name: method + ' ' + path,
+            module: moduleName,
+          }
         }
-      }
-    })
-    .filter((item) => item !== undefined)
+      })
+      .filter((item) => item !== undefined)
 
   // Create permissionsInDbMap object with [method:path] as key
   const permissionsInDbMap: Record<string, (typeof permissionsInDb)[0]> = permissionsInDb.reduce((acc, permission) => {
@@ -89,6 +92,35 @@ async function bootstrap() {
   // } catch (error) {
   //   console.log(error)
   // }
+
+  // Retrieve permissons from db after adding/deleting
+  const updatedPermissionsInDb = await prisma.permission.findMany({
+    where: {
+      deletedAt: null,
+    },
+  })
+
+  // Update permisions for ADMIN role
+  const adminRole = await prisma.role.findFirstOrThrow({
+    where: {
+      name: RoleName.Admin,
+      deletedAt: null,
+    },
+  })
+
+  await prisma.role.update({
+    where: {
+      id: adminRole.id,
+    },
+    data: {
+      permissions: {
+        set: updatedPermissionsInDb.map((permission) => ({
+          id: permission.id,
+        })),
+      },
+    },
+  })
+
   process.exit(0)
 }
 bootstrap()
