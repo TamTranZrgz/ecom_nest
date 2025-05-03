@@ -23,7 +23,6 @@ import {
   EmailNotFoundException,
   FailedToSendOTPException,
   InvalidOTPException,
-  InvalidPasswordException,
   InvalidTOTPAndCodeException,
   InvalidTOTPException,
   OTPExpiredException,
@@ -34,6 +33,7 @@ import {
 } from './auth.error'
 import { TypeOfVerificationCode, TypeOfVerificationCodeType } from 'src/shared/constants/auth.constant'
 import { TwoFactorService } from 'src/shared/services/2fa.service'
+import { InvalidPasswordException } from 'src/shared/error'
 
 @Injectable()
 export class AuthService {
@@ -135,6 +135,7 @@ export class AuthService {
     // 1. Check if email exists in db
     const user = await this.sharedUserRepository.findUnique({
       email: body.email,
+      deletedAt: null,
     })
 
     if (body.type === TypeOfVerificationCode.REGISTER && user) {
@@ -190,6 +191,7 @@ export class AuthService {
     // 1. Get user info, check availability, and password
     const user = await this.authRepository.findUniqueUserIncludeRole({
       email: body.email,
+      deletedAt: null,
     })
 
     if (!user) {
@@ -356,7 +358,11 @@ export class AuthService {
     const { email, code, newPassword } = body
 
     // 1. Check email exists in db, catch error if email not found
-    const user = await this.sharedUserRepository.findUnique({ email })
+    const user = await this.sharedUserRepository.findUnique({
+      email,
+      deletedAt: null,
+    })
+
     if (!user) {
       throw EmailNotFoundException
     }
@@ -371,11 +377,15 @@ export class AuthService {
     // 3. Update with new password & Delete OTP code
     const hashedPassword = await this.hashingService.hash(newPassword)
     await Promise.all([
-      this.authRepository.updateUser(
+      this.sharedUserRepository.update(
         {
           id: user.id,
+          deletedAt: null,
         },
-        { password: hashedPassword },
+        {
+          password: hashedPassword,
+          updatedById: user.id,
+        },
       ),
       this.authRepository.deleteVerificationCode({
         email_code_type: {
@@ -393,7 +403,10 @@ export class AuthService {
 
   async setupTwoFactorAuth(userId: number) {
     // 1. Get user info to check user availability and check 2FA status
-    const user = await this.sharedUserRepository.findUnique({ id: userId })
+    const user = await this.sharedUserRepository.findUnique({
+      id: userId,
+      deletedAt: null,
+    })
 
     if (!user) {
       throw EmailNotFoundException
@@ -407,7 +420,16 @@ export class AuthService {
     const { secret, uri } = this.twoFactorService.generateTOTPSecret(user.email)
 
     // 3. Update secret for user info in db
-    await this.authRepository.updateUser({ id: userId }, { totpSecret: secret })
+    await this.sharedUserRepository.update(
+      {
+        id: userId,
+        deletedAt: null,
+      },
+      {
+        totpSecret: secret,
+        updatedById: userId,
+      },
+    )
 
     // 4. Return secret and uri
     return { secret, uri }
@@ -417,7 +439,10 @@ export class AuthService {
     const { userId, totpCode, code } = data
 
     // 1. Get user info to check user availability and check 2FA status
-    const user = await this.sharedUserRepository.findUnique({ id: userId })
+    const user = await this.sharedUserRepository.findUnique({
+      id: userId,
+      deletedAt: null,
+    })
 
     if (!user) {
       throw EmailNotFoundException
@@ -447,11 +472,21 @@ export class AuthService {
     }
 
     // 4. Update secret to null
-    await this.authRepository.updateUser({ id: userId }, { totpSecret: null })
+    // await this.authRepository.updateUser({ id: userId }, { totpSecret: null })
+    await this.sharedUserRepository.update(
+      {
+        id: userId,
+        deletedAt: null,
+      },
+      {
+        totpSecret: null,
+        updatedById: userId,
+      },
+    )
 
     // 5. Return successfull message
     return {
-      message: 'Tắt 2FA thành công',
+      message: 'Turn off 2FA successfully',
     }
   }
 }
