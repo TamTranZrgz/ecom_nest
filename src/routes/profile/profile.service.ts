@@ -16,7 +16,6 @@ export class ProfileService {
   async getProfile(userId: number) {
     const user = await this.sharedUserRepository.findUniqueIncludeRolePermissions({
       id: userId,
-      deletedAt: null,
     })
 
     if (!user) {
@@ -28,7 +27,7 @@ export class ProfileService {
 
   async updateProfile({ body, userId }: { body: UpdateMeBodyDTO; userId: number }) {
     try {
-      return await this.sharedUserRepository.update({ id: userId, deletedAt: null }, { ...body, updatedById: userId })
+      return await this.sharedUserRepository.update({ id: userId }, { ...body, updatedById: userId })
     } catch (error) {
       if (isUniqueConstraintPrismaError(error)) {
         throw NotFoundRecordException
@@ -40,7 +39,7 @@ export class ProfileService {
   async changePassword({ userId, body }: { userId: number; body: Omit<ChangePasswordBodyType, 'confirmNewPassword'> }) {
     try {
       const { password, newPassword } = body
-      const user = await this.sharedUserRepository.findUnique({ id: userId, deletedAt: null })
+      const user = await this.sharedUserRepository.findUnique({ id: userId })
 
       if (!user) {
         throw NotFoundRecordException
@@ -54,7 +53,7 @@ export class ProfileService {
       const hashedPassword = await this.hashingService.hash(newPassword)
 
       await this.sharedUserRepository.update(
-        { id: userId, deletedAt: null },
+        { id: userId },
         {
           password: hashedPassword,
           updatedById: userId,

@@ -1,7 +1,6 @@
 import { HttpException, Injectable } from '@nestjs/common'
 import { HashingService } from 'src/shared/services/hashing.service'
 import { TokenService } from 'src/shared/services/token.service'
-import { RolesService } from './roles.service'
 import { generateOTP, isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helper'
 import { AuthRepository } from './auth.repo'
 import {
@@ -34,12 +33,13 @@ import {
 import { TypeOfVerificationCode, TypeOfVerificationCodeType } from 'src/shared/constants/auth.constant'
 import { TwoFactorService } from 'src/shared/services/2fa.service'
 import { InvalidPasswordException } from 'src/shared/error'
+import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly hashingService: HashingService,
-    private readonly rolesService: RolesService,
+    private readonly sharedRoleRepository: SharedRoleRepository,
     private readonly authRepository: AuthRepository,
     private readonly sharedUserRepository: SharedUserRepository,
     private readonly emailService: EmailService,
@@ -65,22 +65,10 @@ export class AuthService {
     })
 
     if (!verificationCode) {
-      // throw new UnprocessableEntityException([
-      //   {
-      //     message: 'Invalid OTP code',
-      //     path: 'code',
-      //   },
-      // ])
       throw InvalidOTPException
     }
 
     if (verificationCode.expiresAt < new Date()) {
-      // throw new UnprocessableEntityException([
-      //   {
-      //     message: 'Expired OTP code',
-      //     path: 'code',
-      //   },
-      // ])
       throw OTPExpiredException
     }
 
@@ -95,7 +83,7 @@ export class AuthService {
         type: TypeOfVerificationCode.REGISTER,
       })
 
-      const clientRoleId = await this.rolesService.getClientRoleId()
+      const clientRoleId = await this.sharedRoleRepository.getClientRoleId()
       const hashedPassword = await this.hashingService.hash(body.password)
 
       const [user] = await Promise.all([
@@ -135,7 +123,6 @@ export class AuthService {
     // 1. Check if email exists in db
     const user = await this.sharedUserRepository.findUnique({
       email: body.email,
-      deletedAt: null,
     })
 
     if (body.type === TypeOfVerificationCode.REGISTER && user) {
@@ -191,7 +178,6 @@ export class AuthService {
     // 1. Get user info, check availability, and password
     const user = await this.authRepository.findUniqueUserIncludeRole({
       email: body.email,
-      deletedAt: null,
     })
 
     if (!user) {
@@ -360,7 +346,6 @@ export class AuthService {
     // 1. Check email exists in db, catch error if email not found
     const user = await this.sharedUserRepository.findUnique({
       email,
-      deletedAt: null,
     })
 
     if (!user) {
@@ -380,7 +365,6 @@ export class AuthService {
       this.sharedUserRepository.update(
         {
           id: user.id,
-          deletedAt: null,
         },
         {
           password: hashedPassword,
@@ -405,7 +389,6 @@ export class AuthService {
     // 1. Get user info to check user availability and check 2FA status
     const user = await this.sharedUserRepository.findUnique({
       id: userId,
-      deletedAt: null,
     })
 
     if (!user) {
@@ -423,7 +406,6 @@ export class AuthService {
     await this.sharedUserRepository.update(
       {
         id: userId,
-        deletedAt: null,
       },
       {
         totpSecret: secret,
@@ -441,7 +423,6 @@ export class AuthService {
     // 1. Get user info to check user availability and check 2FA status
     const user = await this.sharedUserRepository.findUnique({
       id: userId,
-      deletedAt: null,
     })
 
     if (!user) {
@@ -476,7 +457,6 @@ export class AuthService {
     await this.sharedUserRepository.update(
       {
         id: userId,
-        deletedAt: null,
       },
       {
         totpSecret: null,

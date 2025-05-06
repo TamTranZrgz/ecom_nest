@@ -5,10 +5,10 @@ import { GoogleAuthStateType } from 'src/routes/auth/auth.model'
 import envConfig from 'src/shared/config'
 import { AuthRepository } from './auth.repo'
 import { HashingService } from 'src/shared/services/hashing.service'
-import { RolesService } from './roles.service'
 import { v4 as uuidv4 } from 'uuid'
 import { AuthService } from './auth.service'
 import { GoogleUserInfoError } from './auth.error'
+import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
 
 @Injectable()
 export class GoogleService {
@@ -16,7 +16,7 @@ export class GoogleService {
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly hashingService: HashingService,
-    private readonly rolesService: RolesService,
+    private readonly sharedRoleRepository: SharedRoleRepository,
     private readonly authService: AuthService,
   ) {
     this.oauth2Client = new google.auth.OAuth2(
@@ -81,7 +81,7 @@ export class GoogleService {
 
       // 4. If user not found, create new user in db
       if (!user) {
-        const clientRoleId = await this.rolesService.getClientRoleId()
+        const clientRoleId = await this.sharedRoleRepository.getClientRoleId()
         const randomPassword = uuidv4()
         const hashedPassword = await this.hashingService.hash(randomPassword)
         user = await this.authRepository.createUserIncludeRole({

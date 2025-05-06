@@ -8,3 +8,8 @@
 - Create html email template: postdrop
 - Oauth Login
 - Swagger OpenAPI
+
+## Functions
+
+- Authentication
+- Media (multer)
