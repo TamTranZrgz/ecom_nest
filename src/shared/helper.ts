@@ -1,5 +1,7 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library'
 import { randomInt } from 'crypto'
+import path from 'path'
+import { v4 as uuidv4 } from 'uuid'
 
 // Type Predicate - Prisma error
 export function isUniqueConstraintPrismaError(error: any): error is PrismaClientKnownRequestError {
@@ -16,4 +18,9 @@ export function isForeignKeyConstraintPrismaError(error: any): error is PrismaCl
 
 export const generateOTP = () => {
   return String(randomInt(100000, 1000000))
+}
+
+export const generateRandomFilename = (filename: string) => {
+  const ext = path.extname(filename)
+  return `${uuidv4()}${ext}`
 }
