@@ -34,8 +34,6 @@ export class BrandController {
   @Post()
   @ZodSerializerDto(GetBrandDetailResDTO)
   create(@Body() body: CreateBrandBodyDTO, @ActiveUser('userId') userId: number) {
-    // console.log(userId)
-    // console.log(body)
     return this.brandService.create({
       data: body,
       createdById: userId,

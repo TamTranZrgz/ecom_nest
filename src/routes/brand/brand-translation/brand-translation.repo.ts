@@ -44,6 +44,7 @@ export class BrandTranslationRepo {
     updatedById: number
     data: UpdateBrandTranslationBodyType
   }): Promise<BrandTranslationType> {
+    // console.log(id)
     return this.prismaService.brandTranslation.update({
       where: {
         id,

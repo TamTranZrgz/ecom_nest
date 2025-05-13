@@ -22,9 +22,6 @@ export class BrandTranslationController {
   @Post()
   @ZodSerializerDto(GetBrandTranslationDetailResDTO)
   create(@Body() body: CreateBrandTranslationBodyDTO, @ActiveUser('userId') userId: number) {
-    console.log(body.brandId)
-    console.log(userId)
-    console.log(body.languageId)
     return this.brandTranslationService.create({
       data: body,
       createdById: userId,
