@@ -4,18 +4,34 @@ import { PaginationQueryType } from 'src/shared/models/request.model'
 import { NotFoundRecordException } from 'src/shared/error'
 import { CreateBrandBodyType, UpdateBrandBodyType } from './brand.model'
 import { isNotFoundPrismaError } from 'src/shared/helper'
+import { I18nContext, I18nService } from 'nestjs-i18n'
+import { I18nTranslations } from 'src/generated/i18n.generated'
 
 @Injectable()
 export class BrandService {
-  constructor(private brandRepo: BrandRepo) {}
+  constructor(
+    private brandRepo: BrandRepo,
+    private readonly i18n: I18nService<I18nTranslations>,
+  ) {}
 
   async list(pagination: PaginationQueryType) {
-    const data = await this.brandRepo.list(pagination)
+    console.log(this.i18n.t('error.NOT_FOUND'), { lang: I18nContext.current()?.lang })
+    const data = await this.brandRepo.list(pagination, I18nContext.current()?.lang as string)
     return data
   }
 
+  /*************  ✨ Windsurf Command ⭐  *************/
+  /**
+   * Finds a brand by its unique identifier.
+   *
+   * @param id - The unique identifier of the brand to retrieve.
+   * @returns The brand object if found.
+   * @throws NotFoundRecordException if the brand with the specified id does not exist.
+   */
+
+  /*******  60531809-2549-443e-bc32-2b39b68e8d98  *******/
   async findById(id: number) {
-    const brand = await this.brandRepo.findById(id)
+    const brand = await this.brandRepo.findById(id, I18nContext.current()?.lang as string)
     if (!brand) {
       throw NotFoundRecordException
     }
