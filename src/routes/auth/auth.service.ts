@@ -180,6 +180,8 @@ export class AuthService {
       email: body.email,
     })
 
+    // console.log(user?.id)
+
     if (!user) {
       // throw new UnprocessableEntityException([
       //   {

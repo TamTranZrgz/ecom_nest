@@ -49,6 +49,7 @@ export class AuthController {
   @IsPublic()
   @ZodSerializerDto(LoginResDTO)
   login(@Body() body: LoginBodyDTO, @UserAgent() userAgent: string, @Ip() ip: string) {
+    // console.log(userAgent)
     return this.authService.login({
       ...body,
       userAgent,
