@@ -1,25 +1,5 @@
 import { z } from 'zod'
-import { CategoryTranslationSchema } from 'src/routes/category/category-translation/category-translattion.model'
-
-export const CategorySchema = z.object({
-  id: z.number(),
-  parentCategoryId: z.number().nullable(),
-
-  name: z.string(),
-  logo: z.string().nullable(),
-
-  createdById: z.number().nullable(),
-  updatedById: z.number().nullable(),
-  deletedById: z.number().nullable(),
-
-  deletedAt: z.date().nullable(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-})
-
-const CategoryIncludeTranslationSchema = CategorySchema.extend({
-  categoryTranslations: z.array(CategoryTranslationSchema),
-})
+import { CategoryIncludeTranslationSchema, CategorySchema } from 'src/shared/models/shared-category.model'
 
 export const GetAllCategoriesResSchema = z.object({
   data: z.array(CategorySchema),
