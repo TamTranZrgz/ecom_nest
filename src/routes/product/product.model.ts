@@ -1,5 +1,7 @@
 import { ProductTranslationSchema } from 'src/routes/product/product-translation/product-translation.model'
 import { SKUSchema, UpsertSKUBodySchema } from 'src/routes/product/sku.model'
+import { OrderBy, SortBy } from 'src/shared/constants/other.constant'
+import { IsPublic } from 'src/shared/decorator/auth.decorator'
 import { BrandIncludeTranslationSchema } from 'src/shared/models/shared-brand.model'
 import { CategoryIncludeTranslationSchema } from 'src/shared/models/shared-category.model'
 import { z } from 'zod'
@@ -25,23 +27,28 @@ function generateSKUs(variants: VariantsType) {
   }))
 }
 export const VariantSchema = z.object({
-  value: z.string(),
-  options: z.array(z.string()),
+  value: z.string().trim(),
+  options: z.array(z.string().trim()),
 })
 
 export const VariantsSchema = z.array(VariantSchema).superRefine((variants, ctx) => {
   // Check variants and variant option for coincidence
   for (let i = 0; i < variants.length; i++) {
     const variant = variants[i]
-    const isDifferent = variants.findIndex((v) => v.value === variant.value) !== i
-    if (!isDifferent) {
+    const isExistingVariant = variants.findIndex((v) => v.value.toLowerCase() === variant.value.toLowerCase()) !== i
+    if (isExistingVariant) {
       return ctx.addIssue({
         code: 'custom',
         message: `Valor ${variant.value} exists in list of variants. Please check again.`,
         path: ['variants'],
       })
     }
-    const isDifferentOption = variant.options.findIndex((o) => variant.options.includes(o)) !== -1
+    // const isDifferentOption = variant.options.findIndex((o) => variant.options.includes(o)) !== -1
+    const isDifferentOption = variant.options.some((option, index) => {
+      const isExistingOption = variant.options.findIndex((o) => o.toLowerCase() === option.toLowerCase()) !== index
+      return isExistingOption
+    })
+
     if (isDifferentOption) {
       return ctx.addIssue({
         code: 'custom',
@@ -55,9 +62,11 @@ export const VariantsSchema = z.array(VariantSchema).superRefine((variants, ctx)
 export const ProductSchema = z.object({
   id: z.number(),
   publishedAt: z.coerce.date().nullable(),
-  name: z.string().max(500),
-  basePrice: z.number().positive(),
-  virtualPrice: z.number().positive(),
+
+  name: z.string().trim().max(500),
+  basePrice: z.number().min(0),
+  virtualPrice: z.number().min(0),
+
   brandId: z.number().positive(),
   images: z.array(z.string()),
   variants: VariantsSchema, // Json field represented as a record
@@ -70,14 +79,42 @@ export const ProductSchema = z.object({
   updatedAt: z.date(),
 })
 
+/**
+ * FOR CUSTOMER AND GUEST (guest are users that not loggined)
+ */
 export const GetProductsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().default(10),
   name: z.string().optional(),
-  brandIds: z.array(z.coerce.number().int().positive()).optional(),
-  categories: z.array(z.coerce.number().int().positive()).optional(),
+  brandIds: z
+    .preprocess((value) => {
+      if (typeof value === 'string') {
+        return [Number(value)]
+      }
+      return value
+    }, z.array(z.coerce.number().int().positive()))
+    .optional(),
+  categories: z
+    .preprocess((value) => {
+      if (typeof value === 'string') {
+        return [Number(value)]
+      }
+      return value
+    }, z.array(z.coerce.number().int().positive()))
+    .optional(),
   minPrice: z.coerce.number().positive().optional(),
   maxPrice: z.coerce.number().positive().optional(),
+  createdById: z.coerce.number().int().positive().optional(), // id shop
+  orderBy: z.enum([OrderBy.Asc, OrderBy.Desc]).default(OrderBy.Desc),
+  sortBy: z.enum([SortBy.Price, SortBy.CreatedAt, SortBy.Sale]).default(SortBy.CreatedAt),
+})
+
+/**
+ * FOR ADMIN & SELLER
+ */
+export const GetManageProductsQuerySchema = GetProductsQuerySchema.extend({
+  isPublic: z.preprocess((value) => value === 'true', z.boolean()).optional(),
+  createdById: z.coerce.number().int().positive(), // seller/admin pass createdById to see products of that certain shop
 })
 
 export const GetProductsResSchema = z.object({
@@ -159,6 +196,8 @@ export type VariantsType = z.infer<typeof VariantsSchema>
 export type GetProductsResType = z.infer<typeof GetProductsResSchema>
 
 export type GetProductsQueryType = z.infer<typeof GetProductsQuerySchema>
+
+export type GetManageProductsQueryType = z.infer<typeof GetManageProductsQuerySchema>
 
 export type GetProductDetailResType = z.infer<typeof GetProductDetailResSchema>
 

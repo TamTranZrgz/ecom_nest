@@ -3,6 +3,8 @@ import { AppModule } from 'src/app.module'
 import { HTTPMethod, RoleName } from 'src/shared/constants/role.constant'
 import { PrismaService } from 'src/shared/services/prisma.service'
 
+const SellerModule = ['auth', 'media', 'manage-product', 'product-translations', 'profile']
+
 const prisma = new PrismaService()
 
 async function bootstrap() {
@@ -100,27 +102,44 @@ async function bootstrap() {
     },
   })
 
+  // console.log(updatedPermissionsInDb)
+
+  const adminPermissionIds = updatedPermissionsInDb.map((permission) => ({
+    id: permission.id,
+  }))
+
+  const sellerPermissionIds = updatedPermissionsInDb
+    .filter((permission) => SellerModule.includes(permission.module))
+    .map((permission) => ({
+      id: permission.id,
+    }))
+
+  // console.log(updatedPermissionsInDb.filter((permission) => SellerModule.includes(permission.module)))
+
+  await Promise.all([updateRole(adminPermissionIds, RoleName.Admin), updateRole(sellerPermissionIds, RoleName.Seller)])
+
+  process.exit(0)
+}
+
+const updateRole = async (permissionIds: { id: number }[], roleName: string) => {
   // Update permisions for ADMIN role
-  const adminRole = await prisma.role.findFirstOrThrow({
+  const role = await prisma.role.findFirstOrThrow({
     where: {
-      name: RoleName.Admin,
+      name: roleName,
       deletedAt: null,
     },
   })
 
   await prisma.role.update({
     where: {
-      id: adminRole.id,
+      id: role.id,
     },
     data: {
       permissions: {
-        set: updatedPermissionsInDb.map((permission) => ({
-          id: permission.id,
-        })),
+        set: permissionIds,
       },
     },
   })
-
-  process.exit(0)
 }
+
 bootstrap()
