@@ -4,11 +4,11 @@ import {
   CreateProductBodyType,
   GetProductDetailResType,
   GetProductsResType,
-  ProductType,
   UpdateProductBodyType,
 } from './product.model'
 import { ALL_LANGUAGE_CODE, OrderBy, OrderByType, SortBy, SortByType } from 'src/shared/constants/other.constant'
 import { Prisma } from '@prisma/client'
+import { ProductType } from 'src/shared/models/shared-product.model'
 
 @Injectable()
 export class ProductRepo {

@@ -6,9 +6,9 @@ import {
   GetProductParamsSchema,
   GetProductsQuerySchema,
   GetProductsResSchema,
-  ProductSchema,
   UpdateProductBodySchema,
 } from './product.model'
+import { ProductSchema } from 'src/shared/models/shared-product.model'
 
 export class ProductDTO extends createZodDto(ProductSchema) {}
 
