@@ -192,10 +192,15 @@ export class ProductRepo {
     createdById,
     data,
   }: {
-    createdById: number | null
+    createdById: number
     data: CreateProductBodyType
   }): Promise<GetProductDetailResType> {
     const { skus, categories, ...productData } = data
+
+    if (createdById == null) {
+      throw new Error('Missing createdById')
+    }
+
     return this.prismaService.product.create({
       data: {
         createdById,
@@ -203,7 +208,7 @@ export class ProductRepo {
         categories: { connect: categories.map((category) => ({ id: category })) }, // not create new categories, but create new items in _categoryToProduct table
         skus: {
           createMany: {
-            data: skus, // create new SKUs
+            data: skus.map((sku) => ({ ...sku, createdById })), // create new SKUs
           },
         },
       },

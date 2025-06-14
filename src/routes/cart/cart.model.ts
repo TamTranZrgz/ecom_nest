@@ -2,6 +2,7 @@ import { ProductSchema } from 'src/shared/models/shared-product.model'
 import { SKUSchema } from 'src/shared/models/shared-sku.model'
 import { z } from 'zod'
 import { ProductTranslationSchema } from 'src/routes/product/product-translation/product-translation.model'
+import { UserSchema } from 'src/shared/models/shared-user.model'
 
 export const CartItemSchema = z.object({
   id: z.number(),
@@ -17,12 +18,21 @@ export const GetCartItemParamsSchema = z.object({
   cartItemId: z.coerce.number().int().positive(),
 })
 
-export const CartItemDetailSchema = CartItemSchema.extend({
-  sku: SKUSchema.extend({
-    product: ProductSchema.extend({
-      productTranslations: z.array(ProductTranslationSchema),
-    }),
+export const CartItemDetailSchema = z.object({
+  shop: UserSchema.pick({
+    id: true,
+    name: true,
+    avatar: true,
   }),
+  cartItems: z.array(
+    CartItemSchema.extend({
+      sku: SKUSchema.extend({
+        product: ProductSchema.extend({
+          productTranslations: z.array(ProductTranslationSchema),
+        }),
+      }),
+    }),
+  ),
 })
 
 export const GetCartResSchema = z.object({
