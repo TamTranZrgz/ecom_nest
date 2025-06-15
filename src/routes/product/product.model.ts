@@ -1,6 +1,6 @@
-import { ProductTranslationSchema } from 'src/routes/product/product-translation/product-translation.model'
 import { UpsertSKUBodySchema } from 'src/routes/product/sku.model'
 import { OrderBy, SortBy } from 'src/shared/constants/other.constant'
+import { ProductTranslationSchema } from 'src/shared/models/sahred-product-translation.model'
 import { BrandIncludeTranslationSchema } from 'src/shared/models/shared-brand.model'
 import { CategoryIncludeTranslationSchema } from 'src/shared/models/shared-category.model'
 import { ProductSchema, VariantsType } from 'src/shared/models/shared-product.model'

@@ -1,8 +1,8 @@
 import { ProductSchema } from 'src/shared/models/shared-product.model'
 import { SKUSchema } from 'src/shared/models/shared-sku.model'
 import { z } from 'zod'
-import { ProductTranslationSchema } from 'src/routes/product/product-translation/product-translation.model'
 import { UserSchema } from 'src/shared/models/shared-user.model'
+import { ProductTranslationSchema } from 'src/shared/models/sahred-product-translation.model'
 
 export const CartItemSchema = z.object({
   id: z.number(),
@@ -10,8 +10,8 @@ export const CartItemSchema = z.object({
   skuId: z.number(),
   userId: z.number(),
 
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
 })
 
 export const GetCartItemParamsSchema = z.object({
@@ -28,8 +28,31 @@ export const CartItemDetailSchema = z.object({
     CartItemSchema.extend({
       sku: SKUSchema.extend({
         product: ProductSchema.extend({
-          productTranslations: z.array(ProductTranslationSchema),
+          productTranslations: z.array(
+            ProductTranslationSchema.omit({
+              createdById: true,
+              updatedById: true,
+              deletedById: true,
+              deletedAt: true,
+              createdAt: true,
+              updatedAt: true,
+            }),
+          ),
+        }).omit({
+          createdById: true,
+          updatedById: true,
+          deletedById: true,
+          deletedAt: true,
+          createdAt: true,
+          updatedAt: true,
         }),
+      }).omit({
+        createdById: true,
+        updatedById: true,
+        deletedById: true,
+        deletedAt: true,
+        createdAt: true,
+        updatedAt: true,
       }),
     }),
   ),

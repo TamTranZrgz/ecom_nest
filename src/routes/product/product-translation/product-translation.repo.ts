@@ -3,9 +3,9 @@ import { PrismaService } from 'src/shared/services/prisma.service'
 import {
   CreateProductTranslationBodyType,
   GetProductTranslationDetailResType,
-  ProductTranslationType,
   UpdateProductTranslationBodyType,
 } from './product-translation.model'
+import { ProductTranslationType } from 'src/shared/models/sahred-product-translation.model'
 
 @Injectable()
 export class ProductTranslationRepo {

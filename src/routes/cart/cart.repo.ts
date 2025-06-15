@@ -137,7 +137,7 @@ export class CartRepo {
   }): Promise<GetCartResType> {
     const skip = (page - 1) * limit
     const take = limit
-    // Đếm tổng số nhóm sản phẩm
+    // Count number of items - totalItems$ is a promise avariable
     const totalItems$ = this.prismaService.$queryRaw<{ createdById: number }[]>`
       SELECT
         "Product"."createdById"
@@ -150,6 +150,8 @@ export class CartRepo {
         AND "Product"."publishedAt" <= NOW()
       GROUP BY "Product"."createdById"
     `
+
+    // Group products based on createdById
     const data$ = await this.prismaService.$queryRaw<CartItemDetailType[]>`
      SELECT
        "Product"."createdById",
@@ -212,7 +214,7 @@ export class CartRepo {
         AND "Product"."deletedAt" IS NULL
         AND "Product"."publishedAt" IS NOT NULL
         AND "Product"."publishedAt" <= NOW()
-     GROUP BY "Product"."createdById", "User"."id"Add commentMore actions
+     GROUP BY "Product"."createdById", "User"."id"
      ORDER BY MAX("CartItem"."updatedAt") DESC
       LIMIT ${take} 
       OFFSET ${skip}
