@@ -481,6 +481,7 @@ model CartItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([userId, skuId])
   @@index([userId])
 }
 
@@ -587,7 +588,7 @@ model Message {
 }
 
 enum OrderStatus {
-  PENDING_CONFIRMATION
+  PENDING_PAYMENT
   PENDING_PICKUP
   PENDING_DELIVERY
   DELIVERED

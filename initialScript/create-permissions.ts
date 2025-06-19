@@ -4,7 +4,7 @@ import { HTTPMethod, RoleName } from 'src/shared/constants/role.constant'
 import { PrismaService } from 'src/shared/services/prisma.service'
 
 const SellerModule = ['auth', 'media', 'manage-product', 'product-translations', 'profile', 'cart']
-const CustomerModule = ['auth', 'media', 'profile', 'cart']
+const CustomerModule = ['auth', 'media', 'profile', 'cart', 'orders']
 const prisma = new PrismaService()
 
 async function bootstrap() {
