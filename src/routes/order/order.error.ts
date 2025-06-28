@@ -9,3 +9,5 @@ export const OutOfStockSKUException = new BadRequestException('Error.OutOfStockS
 export const NotFoundCartItemException = new NotFoundException('Error.NotFoundCartItem')
 
 export const SKUNotBelongToShopException = new BadRequestException('Error.SKUNotBelongToShop')
+
+export const CanNotCancelOrderException = new BadRequestException('Error.CanNotCancelOrder')

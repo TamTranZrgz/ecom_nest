@@ -1,58 +1,6 @@
-import { OrderStatus } from 'src/shared/constants/order.constant'
 import { PaginationQuerySchema } from 'src/shared/models/request.model'
+import { OrderSchema, OrderStatusSchema, ProductSKUSnapshotSchema } from 'src/shared/models/shared-order.model'
 import { z } from 'zod'
-
-export const OrderStatusSchema = z.enum([
-  OrderStatus.PENDING_PAYMENT,
-  OrderStatus.PENDING_PICKUP,
-  OrderStatus.PENDING_DELIVERY,
-  OrderStatus.DELIVERED,
-  OrderStatus.RETUNRED,
-  OrderStatus.CANCELLED,
-])
-
-export const OrderSchema = z.object({
-  id: z.number(),
-  userId: z.number(),
-  status: OrderStatusSchema,
-
-  receiver: z.object({
-    name: z.string(),
-    phone: z.string(),
-    address: z.string(),
-  }),
-  shopId: z.number().nullable(),
-
-  createdById: z.number().nullable(),
-  updatedById: z.number().nullable(),
-  deletedById: z.number().nullable(),
-
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  deletedAt: z.date().nullable(),
-})
-
-export const ProductSKUSnapshotSchema = z.object({
-  id: z.number(),
-  productId: z.number().nullable(),
-  productName: z.string(),
-  productTranslations: z.array(
-    z.object({
-      id: z.number(),
-      name: z.string(),
-      description: z.string(),
-      languageId: z.string(),
-    }),
-  ),
-  skuPrice: z.number(),
-  image: z.string(),
-  skuValue: z.string(),
-  skuId: z.number().nullable(),
-  orderId: z.number().nullable(),
-  quantity: z.number(),
-
-  createdAt: z.date(),
-})
 
 export const GetOrderListResSchema = z.object({
   data: z.array(
@@ -98,6 +46,8 @@ export const CreateOrderResSchema = z.object({
   data: z.array(OrderSchema),
 })
 
+export const CancelOrderBodySchema = z.object({})
+
 export const CancelOrderResSchema = OrderSchema
 
 export const GetOrderParamsSchema = z
@@ -117,5 +67,7 @@ export type GetOrderParamsType = z.infer<typeof GetOrderParamsSchema>
 export type CreateOrderBodyType = z.infer<typeof CreateOrderBodySchema>
 
 export type CreateOrderResType = z.infer<typeof CreateOrderResSchema>
+
+export type CancelOrderBodyType = z.infer<typeof CancelOrderBodySchema>
 
 export type CancelOrderResType = z.infer<typeof CancelOrderResSchema>
