@@ -543,7 +543,7 @@ model Order {
    @@index([status, deletedAt])
 }
 
-model Payment {Add commentMore actions
+model Payment {
   id          Int           @id @default(autoincrement())
   orders      Order[]
   status      PaymentStatus

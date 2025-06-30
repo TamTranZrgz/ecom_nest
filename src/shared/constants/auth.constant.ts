@@ -5,7 +5,7 @@ export const REQUEST_ROLE_PERMISSIONS = 'role_permissions'
 export const AuthType = {
   Bearer: 'Bearer',
   None: 'None',
-  ApiKey: 'ApiKey',
+  PaymentApiKey: 'PaymentApiKey',
 } as const
 
 export type AuthTypeType = (typeof AuthType)[keyof typeof AuthType]

@@ -4,7 +4,7 @@ import { HashingService } from 'src/shared/services/hashing.service'
 import { TokenService } from './services/token.service'
 import { JwtModule } from '@nestjs/jwt'
 import { AccessTokenGuard } from './guards/access-token.guard'
-import { ApiKeyGuard } from './guards/api-key.guard'
+import { PaymentApiKeyGuard } from './guards/payment-api-key.guard'
 import { APP_GUARD } from '@nestjs/core'
 import { AuthenticationGuard } from './guards/authentication.guard'
 import { SharedUserRepository } from './repositories/shared-user.repo'
@@ -28,7 +28,7 @@ const sharedServices = [
   providers: [
     ...sharedServices,
     AccessTokenGuard,
-    ApiKeyGuard,
+    PaymentApiKeyGuard,
     {
       provide: APP_GUARD,
       useClass: AuthenticationGuard,

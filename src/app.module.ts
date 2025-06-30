@@ -24,9 +24,22 @@ import { ProductTranslationModule } from './routes/product/product-translation/p
 import { CartModule } from './routes/cart/cart.module'
 import { OrderModule } from './routes/order/order.module'
 import { PaymentModule } from './routes/payment/payment.module'
+import { BullModule } from '@nestjs/bullmq'
+import envConfig from './shared/config'
+import { env } from 'process'
 
 @Module({
   imports: [
+    BullModule.forRoot({
+      connection: {
+        // host: 'localhost',
+        // port: 6379, // Redis port for localhost
+        host: envConfig.REDIS_HOST,
+        port: envConfig.REDIS_PORT,
+        username: envConfig.REDIS_USERNAME,
+        password: envConfig.REDIS_PASSWORD,
+      },
+    }),
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
