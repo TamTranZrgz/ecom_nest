@@ -63,7 +63,13 @@ export class OrderRepo {
     }
   }
 
-  async create(userId: number, body: CreateOrderBodyType): Promise<CreateOrderResType> {
+  async create(
+    userId: number,
+    body: CreateOrderBodyType,
+  ): Promise<{
+    paymentId: number
+    orders: CreateOrderResType['data']
+  }> {
     const allBodyCartItemIds = body.map((item) => item.cartItemsIds).flat()
 
     const cartItems = await this.prismaService.cartItem.findMany({
@@ -121,7 +127,7 @@ export class OrderRepo {
     if (!isValidShop) throw SKUNotBelongToShopException
 
     // 5. Create order and Delete cartItem in transaction to assure the completeness of data
-    const orders = await this.prismaService.$transaction(async (tx) => {
+    const [paymentId, orders] = await this.prismaService.$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
           status: PaymentStatus.PENDING,
@@ -196,12 +202,12 @@ export class OrderRepo {
       )
 
       const [orders] = await Promise.all([orders$, cartItem$, sku$])
-
-      return orders
+      return [payment.id, orders]
     })
 
     return {
-      data: orders,
+      paymentId,
+      orders,
     }
   }
 

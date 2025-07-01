@@ -34,45 +34,41 @@ export class CartRepo {
     userId: number
     isCreate: boolean
   }): Promise<SKUSchemaType> {
-    // const [cartItem, sku] = await Promise.all([
-    //   this.prismaService.cartItem.findUnique({
-    //     where: {
-    //       userId_skuId: {
-    //         userId,
-    //         skuId,
-    //       },
-    //     },
-    //   }),
-    //   this.prismaService.sKU.findUnique({
-    //     where: {
-    //       id: skuId,
-    //       deletedAt: null,
-    //     },
-    //     include: {
-    //       product: true,
-    //     },
-    //   }),
-    // ])
+    const [cartItem, sku] = await Promise.all([
+      this.prismaService.cartItem.findUnique({
+        where: {
+          userId_skuId: {
+            userId,
+            skuId,
+          },
+        },
+      }),
+      this.prismaService.sKU.findUnique({
+        where: {
+          id: skuId,
+          deletedAt: null,
+        },
+        include: {
+          product: true,
+        },
+      }),
+    ])
 
-    const sku = await this.prismaService.sKU.findUnique({
-      where: { id: skuId, deletedAt: null },
-      include: {
-        product: true,
-      },
-    })
+    // const sku = await this.prismaService.sKU.findUnique({
+    //   where: { id: skuId, deletedAt: null },
+    //   include: {
+    //     product: true,
+    //   },
+    // })
 
     // Check if sku exists
     if (!sku) {
       throw NotFoundSKUException
     }
 
-    // if (!cartItem) {
-    //   throw NotFoundCartItemException
-    // }
-
-    // if (isCreate && quantity + cartItem?.quantity > sku.stock) {
-    //   throw InvalidQuantityException
-    // }
+    if (cartItem && isCreate && quantity + cartItem.quantity > sku.stock) {
+      throw InvalidQuantityException
+    }
 
     // Check inventory
     if (sku.stock < 1 || sku.stock < quantity) {
@@ -337,3 +333,4 @@ export class CartRepo {
     })
   }
 }
+                                                                                                                 
